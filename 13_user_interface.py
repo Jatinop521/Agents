@@ -1,3 +1,5 @@
+# To implement this as a rest api (say using fastapi) and integrate with a frontend - you need to have sse or websocket alongside streaming adjustments in the frontend using ReadableStream
+
 import streamlit as st 
 from langchain_core.messages import HumanMessage
 from backend import workflow  # Not number at starting
@@ -22,10 +24,16 @@ if user_input:
         st.text(user_input)
     
     initial_graphs= {'messages': [HumanMessage(content= user_input)]}
-    final_graph= workflow.invoke(initial_graphs , config= CONFIG)
-    ai_message= final_graph['messages'][-1].content
-    st.session_state['message_history'].append({'By':'assistant', 'content': ai_message})
+    # ai_message= final_graph['messages'][-1].content
+    
     with st.chat_message('assistant'):
-        st.text(ai_message)
         
+        ai_message= st.write_stream(
+        chunk.content for chunk , metadata in workflow.stream(
+                {'messages': [HumanMessage(content= user_input)]},
+                config= CONFIG,
+                stream_mode= 'messages'
+            )
+        )
+    st.session_state['message_history'].append({'By':'assistant', 'content': ai_message})
 
